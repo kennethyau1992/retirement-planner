@@ -78,6 +78,21 @@ npm run build
 npm test
 ```
 
+### Docker
+
+```bash
+# Build and start in production mode
+docker compose up -d --build
+
+# Stop and remove container
+docker compose down
+
+# View logs
+docker compose logs -f
+```
+
+The app will be available at `http://localhost`.
+
 ## Project Structure
 
 ```
