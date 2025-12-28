@@ -38,6 +38,27 @@ The withdrawal algorithm follows a tax-efficient strategy:
 - **Tax Chart**: Tax burden over time
 - **Composition Chart**: Pie chart of portfolio allocation by tax treatment
 
+### Calculation Transparency
+Full visibility into how every number is calculated:
+
+- **Methodology Tab**: Complete reference documentation including:
+  - All formulas used in accumulation and withdrawal phases
+  - 2024 federal tax brackets (Single and MFJ)
+  - Long-term capital gains rate tables
+  - IRS Required Minimum Distribution (RMD) table
+  - Tax-optimized withdrawal strategy explanation
+  - Important assumptions and limitations
+
+- **Year-by-Year Data Tables**: Expandable tables showing detailed projections:
+  - *Accumulation Phase*: Summary, per-account balances, and contributions (with employer match)
+  - *Withdrawal Phase*: Income & spending, withdrawals by account, remaining balances, and tax details
+  - Lifetime totals and color-coded by tax treatment
+
+- **Expandable Summary Cards**: Click any summary metric to see:
+  - The formula used to calculate it
+  - Step-by-step calculation breakdown
+  - Context and explanations for the values
+
 ### User Experience
 - **Dark Mode**: Toggle between light and dark themes
 - **Data Persistence**: All data saved to localStorage automatically
@@ -98,17 +119,20 @@ The app will be available at `http://localhost`.
 ```
 src/
 ├── components/           # React components
-│   ├── AccountForm.tsx      # Form for adding/editing accounts
-│   ├── AccountList.tsx      # List of investment accounts
-│   ├── AssumptionsForm.tsx  # Economic assumptions input
-│   ├── ChartAccumulation.tsx # Portfolio growth chart
-│   ├── ChartComposition.tsx  # Pie chart of allocations
-│   ├── ChartDrawdown.tsx     # Retirement drawdown chart
-│   ├── ChartIncome.tsx       # Retirement income chart
-│   ├── ChartTax.tsx          # Tax burden chart
-│   ├── Layout.tsx            # App layout with header/footer
-│   ├── ProfileForm.tsx       # Personal information form
-│   └── SummaryCards.tsx      # Key metrics display
+│   ├── AccountForm.tsx           # Form for adding/editing accounts
+│   ├── AccountList.tsx           # List of investment accounts
+│   ├── AssumptionsForm.tsx       # Economic assumptions input
+│   ├── ChartAccumulation.tsx     # Portfolio growth chart
+│   ├── ChartComposition.tsx      # Pie chart of allocations
+│   ├── ChartDrawdown.tsx         # Retirement drawdown chart
+│   ├── ChartIncome.tsx           # Retirement income chart
+│   ├── ChartTax.tsx              # Tax burden chart
+│   ├── DataTableAccumulation.tsx # Year-by-year accumulation data
+│   ├── DataTableWithdrawal.tsx   # Year-by-year withdrawal data
+│   ├── Layout.tsx                # App layout with header/footer
+│   ├── MethodologyPanel.tsx      # Formulas & assumptions reference
+│   ├── ProfileForm.tsx           # Personal information form
+│   └── SummaryCards.tsx          # Expandable key metrics display
 ├── hooks/
 │   ├── useLocalStorage.ts    # localStorage persistence hook
 │   └── useRetirementCalc.ts  # Main calculation orchestrator

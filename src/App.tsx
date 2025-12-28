@@ -278,6 +278,7 @@ function App() {
                 <div className="space-y-6">
                   <SummaryCards
                     profile={profile}
+                    assumptions={assumptions}
                     accumulationResult={accumulation}
                     retirementResult={retirement}
                   />

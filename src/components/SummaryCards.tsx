@@ -1,7 +1,10 @@
-import { AccumulationResult, RetirementResult, Profile } from '../types';
+import { useState } from 'react';
+import { AccumulationResult, RetirementResult, Profile, Assumptions } from '../types';
+import { STANDARD_DEDUCTION_MFJ, STANDARD_DEDUCTION_SINGLE } from '../utils/constants';
 
 interface SummaryCardsProps {
   profile: Profile;
+  assumptions: Assumptions;
   accumulationResult: AccumulationResult;
   retirementResult: RetirementResult;
 }
@@ -14,20 +17,37 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-interface StatCardProps {
+function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+interface ExpandableStatCardProps {
   title: string;
   value: string;
   subtitle?: string;
-  color?: 'blue' | 'green' | 'amber' | 'red' | 'purple';
+  color?: 'blue' | 'green' | 'amber' | 'red' | 'purple' | 'teal';
+  formula?: React.ReactNode;
+  details?: React.ReactNode;
 }
 
-function StatCard({ title, value, subtitle, color = 'blue' }: StatCardProps) {
+function ExpandableStatCard({
+  title,
+  value,
+  subtitle,
+  color = 'blue',
+  formula,
+  details
+}: ExpandableStatCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasDetails = formula || details;
+
   const colorClasses = {
     blue: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800',
     green: 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800',
     amber: 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800',
     red: 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800',
     purple: 'bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800',
+    teal: 'bg-teal-50 dark:bg-teal-900/30 border-teal-200 dark:border-teal-800',
   };
 
   const valueColors = {
@@ -36,19 +56,70 @@ function StatCard({ title, value, subtitle, color = 'blue' }: StatCardProps) {
     amber: 'text-amber-700 dark:text-amber-300',
     red: 'text-red-700 dark:text-red-300',
     purple: 'text-purple-700 dark:text-purple-300',
+    teal: 'text-teal-700 dark:text-teal-300',
+  };
+
+  const expandedBg = {
+    blue: 'bg-blue-100/50 dark:bg-blue-900/50',
+    green: 'bg-green-100/50 dark:bg-green-900/50',
+    amber: 'bg-amber-100/50 dark:bg-amber-900/50',
+    red: 'bg-red-100/50 dark:bg-red-900/50',
+    purple: 'bg-purple-100/50 dark:bg-purple-900/50',
+    teal: 'bg-teal-100/50 dark:bg-teal-900/50',
   };
 
   return (
-    <div className={`p-4 rounded-lg border ${colorClasses[color]}`}>
-      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
-      <p className={`text-2xl font-bold ${valueColors[color]}`}>{value}</p>
-      {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>}
+    <div className={`rounded-lg border ${colorClasses[color]} overflow-hidden`}>
+      <div
+        className={`p-4 ${hasDetails ? 'cursor-pointer hover:opacity-90' : ''}`}
+        onClick={() => hasDetails && setIsExpanded(!isExpanded)}
+      >
+        <div className="flex justify-between items-start">
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+          {hasDetails && (
+            <button
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0.5 -mr-1 -mt-1"
+              aria-label={isExpanded ? 'Hide calculation details' : 'Show calculation details'}
+            >
+              <svg
+                className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <p className={`text-2xl font-bold ${valueColors[color]}`}>{value}</p>
+        {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>}
+      </div>
+
+      {isExpanded && hasDetails && (
+        <div className={`px-4 pb-4 pt-2 border-t border-gray-200/50 dark:border-gray-700/50 ${expandedBg[color]}`}>
+          {formula && (
+            <div className="mb-2">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Formula:</p>
+              <code className="text-xs bg-white/60 dark:bg-gray-800/60 px-2 py-1 rounded block text-gray-700 dark:text-gray-300">
+                {formula}
+              </code>
+            </div>
+          )}
+          {details && (
+            <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+              {details}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 export function SummaryCards({
   profile,
+  assumptions,
   accumulationResult,
   retirementResult,
 }: SummaryCardsProps) {
@@ -58,6 +129,7 @@ export function SummaryCards({
     sustainableAnnualWithdrawal,
     portfolioDepletionAge,
     lifetimeTaxesPaid,
+    yearlyWithdrawals,
   } = retirementResult;
 
   const yearsUntilDepletion = portfolioDepletionAge
@@ -74,34 +146,88 @@ export function SummaryCards({
       : 'green'
     : 'green';
 
+  const standardDeduction = profile.filingStatus === 'married_filing_jointly'
+    ? STANDARD_DEDUCTION_MFJ
+    : STANDARD_DEDUCTION_SINGLE;
+
+  // Calculate some useful derived values for display
+  const yearsToRetirement = profile.retirementAge - profile.currentAge;
+  const retirementYears = profile.lifeExpectancy - profile.retirementAge;
+
+  // Calculate average effective tax rate
+  const avgEffectiveTaxRate = yearlyWithdrawals.length > 0
+    ? yearlyWithdrawals.reduce((sum, y) => sum + (y.grossIncome > 0 ? y.totalTax / y.grossIncome : 0), 0) / yearlyWithdrawals.length
+    : 0;
+
   return (
     <div className="space-y-6">
       {/* At Retirement */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">At Retirement (Age {profile.retirementAge})</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+          At Retirement (Age {profile.retirementAge})
+        </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard
+          <ExpandableStatCard
             title="Total Portfolio"
             value={formatCurrency(totalAtRetirement)}
             color="blue"
+            formula={`Sum of all account balances after ${yearsToRetirement} years of growth`}
+            details={
+              <div>
+                <p className="font-medium mb-1">Breakdown by tax treatment:</p>
+                <ul className="space-y-0.5">
+                  <li>Pre-tax: {formatCurrency(breakdownByTaxTreatment.pretax)}</li>
+                  <li>Roth: {formatCurrency(breakdownByTaxTreatment.roth)}</li>
+                  <li>Taxable: {formatCurrency(breakdownByTaxTreatment.taxable)}</li>
+                  <li>HSA: {formatCurrency(breakdownByTaxTreatment.hsa)}</li>
+                </ul>
+              </div>
+            }
           />
-          <StatCard
+          <ExpandableStatCard
             title="Pre-Tax"
             value={formatCurrency(breakdownByTaxTreatment.pretax)}
             subtitle={`${((breakdownByTaxTreatment.pretax / totalAtRetirement) * 100).toFixed(0)}% of portfolio`}
             color="blue"
+            formula="Traditional 401(k) + Traditional IRA balances"
+            details={
+              <p>
+                Pre-tax accounts grow tax-deferred. Withdrawals are taxed as ordinary income.
+                Subject to Required Minimum Distributions (RMDs) starting at age 73.
+              </p>
+            }
           />
-          <StatCard
+          <ExpandableStatCard
             title="Roth (Tax-Free)"
             value={formatCurrency(breakdownByTaxTreatment.roth)}
             subtitle={`${((breakdownByTaxTreatment.roth / totalAtRetirement) * 100).toFixed(0)}% of portfolio`}
             color="green"
+            formula="Roth 401(k) + Roth IRA balances"
+            details={
+              <p>
+                Roth accounts grow tax-free. Qualified withdrawals (after age 59½ and 5-year holding)
+                are completely tax-free. No RMDs required for Roth IRAs.
+              </p>
+            }
           />
-          <StatCard
+          <ExpandableStatCard
             title="Taxable + HSA"
             value={formatCurrency(breakdownByTaxTreatment.taxable + breakdownByTaxTreatment.hsa)}
             subtitle={`${(((breakdownByTaxTreatment.taxable + breakdownByTaxTreatment.hsa) / totalAtRetirement) * 100).toFixed(0)}% of portfolio`}
             color="amber"
+            formula="Taxable brokerage + HSA balances"
+            details={
+              <div>
+                <p className="mb-1">
+                  <strong>Taxable:</strong> {formatCurrency(breakdownByTaxTreatment.taxable)} -
+                  Only gains are taxed at capital gains rates (often 0% or 15%).
+                </p>
+                <p>
+                  <strong>HSA:</strong> {formatCurrency(breakdownByTaxTreatment.hsa)} -
+                  Tax-free for qualified medical expenses.
+                </p>
+              </div>
+            }
           />
         </div>
       </div>
@@ -110,30 +236,144 @@ export function SummaryCards({
       <div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">During Retirement</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard
+          <ExpandableStatCard
             title="Monthly Withdrawal"
             value={formatCurrency(sustainableMonthlyWithdrawal)}
             subtitle="In today's dollars"
             color="green"
+            formula={`${formatCurrency(totalAtRetirement)} × ${formatPercent(assumptions.safeWithdrawalRate)} ÷ 12`}
+            details={
+              <div>
+                <p className="mb-1">
+                  Based on the {formatPercent(assumptions.safeWithdrawalRate)} safe withdrawal rate applied to your
+                  {' '}{formatCurrency(totalAtRetirement)} portfolio.
+                </p>
+                <p>
+                  Actual withdrawals will be adjusted for {formatPercent(assumptions.inflationRate)} annual inflation.
+                </p>
+              </div>
+            }
           />
-          <StatCard
+          <ExpandableStatCard
             title="Annual Withdrawal"
             value={formatCurrency(sustainableAnnualWithdrawal)}
             subtitle="In today's dollars"
             color="green"
+            formula={`${formatCurrency(totalAtRetirement)} × ${formatPercent(assumptions.safeWithdrawalRate)}`}
+            details={
+              <div>
+                <p className="mb-1">
+                  = {formatCurrency(totalAtRetirement)} × {formatPercent(assumptions.safeWithdrawalRate)}
+                </p>
+                <p className="mb-1">
+                  = {formatCurrency(sustainableAnnualWithdrawal)}
+                </p>
+                <p className="text-gray-500 dark:text-gray-400 italic">
+                  This is your initial withdrawal amount. Each year it increases by the inflation rate ({formatPercent(assumptions.inflationRate)}).
+                </p>
+              </div>
+            }
           />
-          <StatCard
+          <ExpandableStatCard
             title="Portfolio Longevity"
             value={portfolioDepletionAge ? `Age ${portfolioDepletionAge}` : 'Never depletes'}
             subtitle={portfolioLasts}
-            color={portfolioStatus}
+            color={portfolioStatus as 'red' | 'green'}
+            formula="Simulated year-by-year until balance reaches $0"
+            details={
+              <div>
+                <p className="mb-1">
+                  Simulation runs from age {profile.retirementAge} to {profile.lifeExpectancy} ({retirementYears} years).
+                </p>
+                <p className="mb-1">
+                  Assumes {formatPercent(assumptions.retirementReturnRate)} annual return during retirement.
+                </p>
+                {portfolioDepletionAge ? (
+                  <p className="text-red-600 dark:text-red-400">
+                    Portfolio depletes {profile.lifeExpectancy - portfolioDepletionAge} years before life expectancy.
+                  </p>
+                ) : (
+                  <p className="text-green-600 dark:text-green-400">
+                    Final balance at age {profile.lifeExpectancy}: {formatCurrency(yearlyWithdrawals[yearlyWithdrawals.length - 1]?.totalRemainingBalance || 0)}
+                  </p>
+                )}
+              </div>
+            }
           />
-          <StatCard
+          <ExpandableStatCard
             title="Lifetime Taxes"
             value={formatCurrency(lifetimeTaxesPaid)}
             subtitle="Total taxes in retirement"
             color="purple"
+            formula="Sum of federal + state taxes across all retirement years"
+            details={
+              <div>
+                <p className="mb-1">
+                  Over {retirementYears} years of retirement:
+                </p>
+                <ul className="space-y-0.5 mb-2">
+                  <li>Federal taxes: {formatCurrency(yearlyWithdrawals.reduce((sum, y) => sum + y.federalTax, 0))}</li>
+                  <li>State taxes: {formatCurrency(yearlyWithdrawals.reduce((sum, y) => sum + y.stateTax, 0))}</li>
+                </ul>
+                <p>
+                  Average effective tax rate: {formatPercent(avgEffectiveTaxRate)}
+                </p>
+                <p className="text-gray-500 dark:text-gray-400 italic mt-1">
+                  Standard deduction: {formatCurrency(standardDeduction)} ({profile.filingStatus === 'married_filing_jointly' ? 'MFJ' : 'Single'})
+                </p>
+              </div>
+            }
           />
+        </div>
+      </div>
+
+      {/* Additional Insights */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Key Insights</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <ExpandableStatCard
+            title="Years to Retirement"
+            value={`${yearsToRetirement} years`}
+            subtitle={`Age ${profile.currentAge} → ${profile.retirementAge}`}
+            color="teal"
+            details={
+              <p>
+                Your contributions and investment returns have {yearsToRetirement} years to compound
+                before you begin withdrawing.
+              </p>
+            }
+          />
+          <ExpandableStatCard
+            title="Retirement Duration"
+            value={`${retirementYears} years`}
+            subtitle={`Age ${profile.retirementAge} → ${profile.lifeExpectancy}`}
+            color="teal"
+            details={
+              <p>
+                Your portfolio needs to support withdrawals for {retirementYears} years of retirement.
+                Longevity risk is a key factor in retirement planning.
+              </p>
+            }
+          />
+          {profile.socialSecurityBenefit && profile.socialSecurityStartAge ? (
+            <ExpandableStatCard
+              title="Social Security"
+              value={formatCurrency(profile.socialSecurityBenefit)}
+              subtitle={`Starting at age ${profile.socialSecurityStartAge}`}
+              color="teal"
+              formula="Annual benefit in today's dollars, adjusted for inflation"
+              details={
+                <div>
+                  <p className="mb-1">
+                    Social Security income is assumed to grow with inflation ({formatPercent(assumptions.inflationRate)}/year).
+                  </p>
+                  <p>
+                    85% of Social Security is included as taxable income (maximum taxable portion).
+                  </p>
+                </div>
+              }
+            />
+          ) : null}
         </div>
       </div>
 
