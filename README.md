@@ -2,6 +2,8 @@
 
 A comprehensive retirement planning calculator that projects portfolio growth, simulates tax-optimized withdrawals, and visualizes your financial future through retirement.
 
+✨Vibe✨ coded with Claude.
+
 ## Features
 
 ### Portfolio Management
