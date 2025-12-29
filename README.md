@@ -2,7 +2,9 @@
 
 A comprehensive retirement planning calculator that projects portfolio growth, simulates tax-optimized withdrawals, and visualizes your financial future through retirement.
 
-✨Vibe✨ coded with Claude.
+✨Vibe✨ coded with Claude -- check results manually for accuracy.
+
+Hosted at: [https://mjcrepeau.github.io/retirement-planner/](https://mjcrepeau.github.io/retirement-planner/)
 
 ## Features
 
