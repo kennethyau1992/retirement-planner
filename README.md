@@ -42,6 +42,15 @@ The withdrawal algorithm follows a tax-efficient strategy:
 - **Tax Chart**: Tax burden over time
 - **Composition Chart**: Pie chart of portfolio allocation by tax treatment
 
+### Screenshots
+![Dashboard showing retirement account totals, income, etc.](screenshots/dashboard.png "Main dashboard")
+![Graph showing cash accumulation over working years](screenshots/accumulation.png "Accumulation graph")
+![Graph showing account drawdown over retirement years](screenshots/drawdown.png "Drawdown graph")
+![Graph showing retirement invome year by year](screenshots/income.png "Income graph")
+![Graph showing retirement taxe burden year by year](screenshots/taxes.png "Tax burden graph")
+![Table showing yearly income and spending calculations](screenshots/yearly.png "Yearly income table")
+
+
 ### Calculation Transparency
 Full visibility into how every number is calculated:
 
