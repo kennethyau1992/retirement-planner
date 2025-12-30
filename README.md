@@ -6,6 +6,8 @@ A comprehensive retirement planning calculator that projects portfolio growth, s
 
 Hosted at: [https://mjcrepeau.github.io/retirement-planner/](https://mjcrepeau.github.io/retirement-planner/)
 
+![Dashboard showing retirement account totals, income, etc.](screenshots/dashboard.png "Main dashboard")
+
 ## Features
 
 ### Portfolio Management
@@ -43,7 +45,6 @@ The withdrawal algorithm follows a tax-efficient strategy:
 - **Composition Chart**: Pie chart of portfolio allocation by tax treatment
 
 ### Screenshots
-![Dashboard showing retirement account totals, income, etc.](screenshots/dashboard.png "Main dashboard")
 ![Graph showing cash accumulation over working years](screenshots/accumulation.png "Accumulation graph")
 ![Graph showing account drawdown over retirement years](screenshots/drawdown.png "Drawdown graph")
 ![Graph showing retirement invome year by year](screenshots/income.png "Income graph")
