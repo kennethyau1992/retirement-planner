@@ -87,7 +87,7 @@ export function Layout({ children, isDarkMode, onToggleDarkMode, onReset }: Layo
             Tax calculations use 2024 federal brackets.
           </p>
           <a
-            href="https://github.com/mjcrepeau/retirement-planner"
+            href="https://github.com/kennethyau1992/retirement-planner"
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ml-4"
