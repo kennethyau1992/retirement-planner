@@ -1,27 +1,29 @@
 import { useState } from 'react';
-import { Account, AccountType, getAccountTypeLabel, is401k } from '../types';
+import { Account, AccountType, getAccountTypeLabel, hasEmployerMatch } from '../types';
 import { NumberInput } from './NumberInput';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AccountFormProps {
   account?: Account;
+  hasSpouse: boolean;
   onSave: (account: Account) => void;
   onCancel: () => void;
 }
 
 const defaultAccount: Omit<Account, 'id'> = {
   name: '',
-  type: 'traditional_401k',
+  type: 'rrsp',
+  owner: 'primary',
   balance: 0,
   annualContribution: 0,
   contributionGrowthRate: 0.03,
-  returnRate: 0.07,
+  returnRate: 0.05,
 };
 
 const inputClassName = "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white";
 const inputErrorClassName = "w-full px-3 py-2 border border-red-500 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white";
 
-export function AccountForm({ account, onSave, onCancel }: AccountFormProps) {
+export function AccountForm({ account, hasSpouse, onSave, onCancel }: AccountFormProps) {
   // Initialize form data from account prop (component is re-mounted with key when account changes)
   const [formData, setFormData] = useState<Omit<Account, 'id'>>(() => {
     if (account) {
@@ -80,30 +82,46 @@ export function AccountForm({ account, onSave, onCancel }: AccountFormProps) {
   };
 
   const accountTypes: AccountType[] = [
-    'traditional_401k',
-    'roth_401k',
-    'traditional_ira',
-    'roth_ira',
-    'taxable',
-    'hsa',
+    'rrsp',
+    'tfsa',
+    'non_registered',
+    'fhsa',
   ];
 
-  const show401kFields = is401k(formData.type);
+  const showMatchFields = hasEmployerMatch(formData.type);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Account Name *
-        </label>
-        <input
-          type="text"
-          value={formData.name}
-          onChange={(e) => handleChange('name', e.target.value)}
-          placeholder="e.g., Company 401(k)"
-          className={errors.name ? inputErrorClassName : inputClassName}
-        />
-        {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+      <div className="grid grid-cols-2 gap-4">
+        <div className={hasSpouse ? 'col-span-1' : 'col-span-2'}>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Account Name *
+          </label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => handleChange('name', e.target.value)}
+            placeholder="e.g., My Group RRSP"
+            className={errors.name ? inputErrorClassName : inputClassName}
+          />
+          {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+        </div>
+
+        {hasSpouse && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Owner
+            </label>
+            <select
+              value={formData.owner || 'primary'}
+              onChange={(e) => handleChange('owner', e.target.value as 'primary' | 'spouse')}
+              className={inputClassName}
+            >
+              <option value="primary">Primary</option>
+              <option value="spouse">Spouse</option>
+            </select>
+          </div>
+        )}
       </div>
 
       <div>
@@ -192,14 +210,14 @@ export function AccountForm({ account, onSave, onCancel }: AccountFormProps) {
         </div>
       </div>
 
-      {show401kFields && (
+      {showMatchFields && (
         <div className="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
-          <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">Employer Match</h4>
-          <div className="grid grid-cols-2 gap-4">
+          <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">Employer Match Settings</h4>
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Match Percentage (%)
-                <span className="text-gray-500 dark:text-gray-400 text-xs ml-1" title="What percent of your contribution does employer match?">
+                Match Ratio (%)
+                <span className="text-gray-500 dark:text-gray-400 text-xs ml-1" title="How much employer contributes per $1 you put in (e.g. 50% or 100%)">
                   ⓘ
                 </span>
               </label>
@@ -217,8 +235,27 @@ export function AccountForm({ account, onSave, onCancel }: AccountFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Match Limit ($)
-                <span className="text-gray-500 dark:text-gray-400 text-xs ml-1" title="Maximum annual employer match in dollars">
+                Up to Salary %
+                <span className="text-gray-500 dark:text-gray-400 text-xs ml-1" title="Maximum % of your salary the employer will match (e.g. 5%)">
+                  ⓘ
+                </span>
+              </label>
+              <NumberInput
+                value={formData.matchableSalaryPercent || 0}
+                onChange={(val) => handleChange('matchableSalaryPercent', val)}
+                min={0}
+                max={20}
+                isPercentage
+                decimals={1}
+                defaultValue={0}
+                className={inputClassName}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Max Cap ($)
+                <span className="text-gray-500 dark:text-gray-400 text-xs ml-1" title="Hard dollar limit on employer contribution">
                   ⓘ
                 </span>
               </label>

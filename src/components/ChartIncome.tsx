@@ -29,9 +29,9 @@ function formatCurrency(value: number): string {
 }
 
 function formatTooltipValue(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -57,10 +57,10 @@ function CustomTooltip({ active, payload, label, result }: CustomTooltipProps) {
           <span style={{ color: CHART_COLORS.pretax }}>Withdrawals:</span>
           <span className="font-medium text-gray-900 dark:text-white">{formatTooltipValue(yearData.totalWithdrawal)}</span>
         </div>
-        {yearData.socialSecurityIncome > 0 && (
+        {yearData.cppOasIncome > 0 && (
           <div className="flex justify-between gap-4">
-            <span style={{ color: CHART_COLORS.socialSecurity }}>Social Security:</span>
-            <span className="font-medium text-gray-900 dark:text-white">{formatTooltipValue(yearData.socialSecurityIncome)}</span>
+            <span style={{ color: CHART_COLORS.socialSecurity }}>CPP & OAS:</span>
+            <span className="font-medium text-gray-900 dark:text-white">{formatTooltipValue(yearData.cppOasIncome)}</span>
           </div>
         )}
         <div className="flex justify-between gap-4 border-t border-gray-200 dark:border-gray-600 pt-1 mt-1">
@@ -90,7 +90,7 @@ export function ChartIncome({ result, isDarkMode = false }: ChartIncomeProps) {
   const chartData = result.yearlyWithdrawals.map(year => ({
     age: year.age,
     withdrawals: year.totalWithdrawal,
-    socialSecurity: year.socialSecurityIncome,
+    cppOas: year.cppOasIncome,
     taxes: year.totalTax, // Keep positive for separate display
     afterTax: year.afterTaxIncome,
     gross: year.grossIncome,
@@ -130,8 +130,8 @@ export function ChartIncome({ result, isDarkMode = false }: ChartIncomeProps) {
             fillOpacity={0.8}
           />
           <Bar
-            dataKey="socialSecurity"
-            name="Social Security"
+            dataKey="cppOas"
+            name="CPP & OAS"
             stackId="income"
             fill={CHART_COLORS.socialSecurity}
             fillOpacity={0.8}

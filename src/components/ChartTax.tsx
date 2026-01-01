@@ -28,9 +28,9 @@ function formatCurrency(value: number): string {
 }
 
 function formatTooltipValue(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -61,8 +61,8 @@ function CustomTooltip({ active, payload, label, result }: CustomTooltipProps) {
           <span className="font-medium text-gray-900 dark:text-white">{formatTooltipValue(yearData.federalTax)}</span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-purple-600 dark:text-purple-400">State Tax:</span>
-          <span className="font-medium text-gray-900 dark:text-white">{formatTooltipValue(yearData.stateTax)}</span>
+          <span className="text-purple-600 dark:text-purple-400">Provincial Tax:</span>
+          <span className="font-medium text-gray-900 dark:text-white">{formatTooltipValue(yearData.provincialTax)}</span>
         </div>
         <div className="border-t border-gray-200 dark:border-gray-600 mt-2 pt-2">
           <div className="flex justify-between gap-4 font-semibold">
@@ -93,7 +93,7 @@ export function ChartTax({ result, isDarkMode = false }: ChartTaxProps) {
     return {
       age: year.age,
       federalTax: year.federalTax,
-      stateTax: year.stateTax,
+      provincialTax: year.provincialTax,
       totalTax: year.totalTax,
       effectiveRate,
     };
@@ -143,8 +143,8 @@ export function ChartTax({ result, isDarkMode = false }: ChartTaxProps) {
           />
           <Bar
             yAxisId="left"
-            dataKey="stateTax"
-            name="State Tax"
+            dataKey="provincialTax"
+            name="Provincial Tax"
             stackId="tax"
             fill="#8b5cf6"
             fillOpacity={0.8}

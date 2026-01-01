@@ -7,6 +7,7 @@ import { Layout } from './components/Layout';
 import { AccountList } from './components/AccountList';
 import { ProfileForm } from './components/ProfileForm';
 import { AssumptionsForm } from './components/AssumptionsForm';
+import { SavingsSuggestions } from './components/SavingsSuggestions';
 import { SummaryCards } from './components/SummaryCards';
 import { ChartAccumulation } from './components/ChartAccumulation';
 import { ChartDrawdown } from './components/ChartDrawdown';
@@ -16,29 +17,43 @@ import { ChartComposition } from './components/ChartComposition';
 import { MethodologyPanel } from './components/MethodologyPanel';
 import { DataTableAccumulation } from './components/DataTableAccumulation';
 import { DataTableWithdrawal } from './components/DataTableWithdrawal';
+import { calculateAnnualLimits } from './utils/limits';
 import { v4 as uuidv4 } from 'uuid';
 
 // Default accounts for demonstration
 const createDefaultAccounts = (): Account[] => [
   {
     id: uuidv4(),
-    name: 'Company 401(k)',
-    type: 'traditional_401k',
-    balance: 150000,
+    name: 'Group RRSP',
+    type: 'rrsp',
+    owner: 'primary',
+    balance: 0,
     annualContribution: 15000,
     contributionGrowthRate: 0.03,
-    returnRate: 0.07,
-    employerMatchPercent: 0.5,
-    employerMatchLimit: 3000,
+    returnRate: 0.05,
+    employerMatchPercent: 0.5, // 50% match ratio
+    matchableSalaryPercent: 0.05, // Up to 5% of salary
+    employerMatchLimit: 20000,
   },
   {
     id: uuidv4(),
-    name: 'Roth IRA',
-    type: 'roth_ira',
-    balance: 40000,
+    name: 'TFSA',
+    type: 'tfsa',
+    owner: 'primary',
+    balance: 0,
     annualContribution: 7000,
     contributionGrowthRate: 0,
-    returnRate: 0.07,
+    returnRate: 0.05,
+  },
+  {
+    id: uuidv4(),
+    name: 'Non-Registered',
+    type: 'non_registered',
+    owner: 'primary',
+    balance: 0,
+    annualContribution: 0,
+    contributionGrowthRate: 0.03,
+    returnRate: 0.05,
   },
 ];
 
@@ -82,6 +97,129 @@ function App() {
   const handleDeleteAccount = (id: string) => {
     setAccounts(prev => prev.filter(acc => acc.id !== id));
   };
+
+  const handleSyncSuggested = useCallback(() => {
+    const limits = calculateAnnualLimits(profile);
+    setAccounts(prev => {
+      let next = [...prev];
+      
+      const syncAccount = (type: 'rrsp' | 'tfsa' | 'fhsa' | 'non_registered', amount: number, label: string, owner: 'primary' | 'spouse', incomeForMatch?: number) => {
+        // Special logic for RRSP to split between Group and Individual
+        if (type === 'rrsp' && amount > 0) {
+          // 1. Find Group RRSP (Has 'group' in name OR has a match %)
+          const groupIndex = next.findIndex(a => 
+            a.type === 'rrsp' && 
+            (a.owner || 'primary') === owner && 
+            (a.name.toLowerCase().includes('group') || (a.employerMatchPercent || 0) > 0)
+          );
+          
+          let remainingRRSP = amount;
+          
+          if (groupIndex >= 0) {
+            const groupAcc = next[groupIndex];
+            // Use account settings or defaults: 50% match ratio, 5% salary cap
+            const matchRatio = groupAcc.employerMatchPercent || 0.5; 
+            const salaryCapPercent = groupAcc.matchableSalaryPercent || 0.05;
+            
+            // Calculate how much user needs to contribute to max out the match
+            // Target 1: Salary * SalaryCapPercent
+            const targetFromSalary = (incomeForMatch || 0) * salaryCapPercent;
+            
+            // Target 2: Dollar Cap (Limit is usually on EMPLOYER portion, so reverse calculate user portion)
+            // If employer caps at $3000 and matches 50%, user can put in $6000 to get it.
+            const employerDollarCap = groupAcc.employerMatchLimit && groupAcc.employerMatchLimit > 0 
+              ? groupAcc.employerMatchLimit 
+              : Infinity;
+            const targetFromDollarCap = matchRatio > 0 ? employerDollarCap / matchRatio : Infinity;
+
+            const targetUserContribution = Math.min(targetFromSalary, targetFromDollarCap);
+
+            // We contribute up to the target, limited by total available RRSP room
+            const groupContribution = Math.min(remainingRRSP, targetUserContribution);
+            
+            next[groupIndex] = {
+              ...groupAcc,
+              annualContribution: groupContribution,
+              employerMatchPercent: matchRatio,
+              matchableSalaryPercent: salaryCapPercent,
+              balance: groupAcc.balance || 0
+            };
+            
+            remainingRRSP = Math.max(0, remainingRRSP - groupContribution);
+          }
+          
+          // 2. Put remainder in Individual RRSP
+          if (remainingRRSP > 0) {
+            // Find account that is explicitly NOT group (no match, no 'group' name)
+            const individualIndex = next.findIndex(a => 
+              a.type === 'rrsp' && 
+              (a.owner || 'primary') === owner && 
+              !a.name.toLowerCase().includes('group') && 
+              !(a.employerMatchPercent && a.employerMatchPercent > 0)
+            );
+            
+            if (individualIndex >= 0) {
+              next[individualIndex] = { 
+                ...next[individualIndex], 
+                annualContribution: remainingRRSP, 
+                balance: next[individualIndex].balance || 0 
+              };
+            } else {
+              next.push({
+                id: uuidv4(),
+                name: `Individual RRSP (${owner === 'primary' ? 'Primary' : 'Spouse'})`,
+                type: 'rrsp',
+                owner: owner,
+                balance: 0,
+                annualContribution: remainingRRSP,
+                contributionGrowthRate: 0.03,
+                returnRate: 0.07,
+              });
+            }
+          }
+          return;
+        }
+
+        // Standard logic for other accounts
+        const existingIndex = next.findIndex(a => a.type === type && (a.owner || 'primary') === owner);
+        if (existingIndex >= 0) {
+          next[existingIndex] = { 
+            ...next[existingIndex], 
+            annualContribution: amount,
+            balance: next[existingIndex].balance || 0
+          };
+        } else if (amount > 0) {
+          next.push({
+            id: uuidv4(),
+            name: `${label} (${owner === 'primary' ? 'Primary' : 'Spouse'})`,
+            type: type,
+            owner: owner,
+            balance: 0,
+            annualContribution: amount,
+            contributionGrowthRate: 0.03,
+            returnRate: 0.07,
+          });
+        }
+      };
+
+      // Sync Primary
+      syncAccount('fhsa', limits.fhsa, 'FHSA', 'primary'); 
+      syncAccount('tfsa', limits.tfsa, 'TFSA', 'primary'); 
+      syncAccount('rrsp', limits.rrsp, 'RRSP', 'primary', profile.annualIncome); 
+      syncAccount('non_registered', limits.nonRegistered, 'Non-Registered', 'primary');
+
+      // Sync Spouse
+      if (profile.spouse && limits.spouse) {
+        syncAccount('fhsa', limits.spouse.fhsa, 'FHSA', 'spouse');
+        syncAccount('tfsa', limits.spouse.tfsa, 'TFSA', 'spouse');
+        syncAccount('rrsp', limits.spouse.rrsp, 'RRSP', 'spouse', profile.spouse.annualIncome);
+        syncAccount('non_registered', limits.spouse.nonRegistered, 'Non-Registered', 'spouse');
+      }
+
+      return next;
+    });
+    setExpandedSection('accounts');
+  }, [profile, setAccounts]);
 
   const toggleSection = (section: string) => {
     setExpandedSection(prev => (prev === section ? null : section));
@@ -171,6 +309,7 @@ function App() {
               <div className="px-4 pb-4">
                 <AccountList
                   accounts={accounts}
+                  hasSpouse={!!profile.spouse}
                   onAdd={handleAddAccount}
                   onUpdate={handleUpdateAccount}
                   onDelete={handleDeleteAccount}
@@ -198,8 +337,9 @@ function App() {
               </svg>
             </button>
             {expandedSection === 'profile' && (
-              <div className="px-4 pb-4">
+              <div className="px-4 pb-4 space-y-4">
                 <ProfileForm profile={profile} onChange={setProfile} />
+                <SavingsSuggestions profile={profile} onSync={handleSyncSuggested} />
               </div>
             )}
           </div>

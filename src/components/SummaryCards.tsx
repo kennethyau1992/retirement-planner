@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AccumulationResult, RetirementResult, Profile, Assumptions } from '../types';
-import { STANDARD_DEDUCTION_MFJ, STANDARD_DEDUCTION_SINGLE } from '../utils/constants';
+import { BASIC_PERSONAL_AMOUNT } from '../utils/constants';
 
 interface SummaryCardsProps {
   profile: Profile;
@@ -10,9 +10,9 @@ interface SummaryCardsProps {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -150,10 +150,6 @@ export function SummaryCards({
       : 'green'
     : 'green';
 
-  const standardDeduction = profile.filingStatus === 'married_filing_jointly'
-    ? STANDARD_DEDUCTION_MFJ
-    : STANDARD_DEDUCTION_SINGLE;
-
   // Calculate some useful derived values for display
   const yearsToRetirement = Math.max(0, profile.retirementAge - profile.currentAge);
   const retirementYears = Math.max(0, profile.lifeExpectancy - profile.retirementAge);
@@ -192,61 +188,55 @@ export function SummaryCards({
           <ExpandableStatCard
             title="Total Portfolio"
             value={formatCurrency(totalAtRetirement)}
+            subtitle={`In today's dollars: ${formatCurrency(accumulationResult.totalAtRetirementReal)}`}
             color="blue"
             formula={`Sum of all account balances after ${yearsToRetirement} years of growth`}
             details={
               <div>
                 <p className="font-medium mb-1">Breakdown by tax treatment:</p>
                 <ul className="space-y-0.5">
-                  <li>Pre-tax: {formatCurrency(breakdownByTaxTreatment.pretax)}</li>
-                  <li>Roth: {formatCurrency(breakdownByTaxTreatment.roth)}</li>
-                  <li>Taxable: {formatCurrency(breakdownByTaxTreatment.taxable)}</li>
-                  <li>HSA: {formatCurrency(breakdownByTaxTreatment.hsa)}</li>
+                  <li>RRSP (Pre-tax): {formatCurrency(breakdownByTaxTreatment.pretax)}</li>
+                  <li>TFSA (Tax-free): {formatCurrency(breakdownByTaxTreatment.tax_free)}</li>
+                  <li>Non-Registered: {formatCurrency(breakdownByTaxTreatment.taxable)}</li>
                 </ul>
               </div>
             }
           />
           <ExpandableStatCard
-            title="Pre-Tax"
+            title="RRSP (Pre-Tax)"
             value={formatCurrency(breakdownByTaxTreatment.pretax)}
-            subtitle={`${((breakdownByTaxTreatment.pretax / totalAtRetirement) * 100).toFixed(0)}% of portfolio`}
+            subtitle={`Today's $: ${formatCurrency(accumulationResult.breakdownByTaxTreatmentReal.pretax)}`}
             color="blue"
-            formula="Traditional 401(k) + Traditional IRA balances"
+            formula="RRSP balances"
             details={
               <p>
                 Pre-tax accounts grow tax-deferred. Withdrawals are taxed as ordinary income.
-                Subject to Required Minimum Distributions (RMDs) starting at age 73.
+                Must convert to RRIF by age 71.
               </p>
             }
           />
           <ExpandableStatCard
-            title="Roth (Tax-Free)"
-            value={formatCurrency(breakdownByTaxTreatment.roth)}
-            subtitle={`${((breakdownByTaxTreatment.roth / totalAtRetirement) * 100).toFixed(0)}% of portfolio`}
+            title="TFSA (Tax-Free)"
+            value={formatCurrency(breakdownByTaxTreatment.tax_free)}
+            subtitle={`Today's $: ${formatCurrency(accumulationResult.breakdownByTaxTreatmentReal.tax_free)}`}
             color="green"
-            formula="Roth 401(k) + Roth IRA balances"
+            formula="TFSA + FHSA balances"
             details={
               <p>
-                Roth accounts grow tax-free. Qualified withdrawals (after age 59½ and 5-year holding)
-                are completely tax-free. No RMDs required for Roth IRAs.
+                TFSA withdrawals are completely tax-free and do not affect government benefits like OAS.
               </p>
             }
           />
           <ExpandableStatCard
-            title="Taxable + HSA"
-            value={formatCurrency(breakdownByTaxTreatment.taxable + breakdownByTaxTreatment.hsa)}
-            subtitle={`${(((breakdownByTaxTreatment.taxable + breakdownByTaxTreatment.hsa) / totalAtRetirement) * 100).toFixed(0)}% of portfolio`}
+            title="Non-Registered"
+            value={formatCurrency(breakdownByTaxTreatment.taxable)}
+            subtitle={`Today's $: ${formatCurrency(accumulationResult.breakdownByTaxTreatmentReal.taxable)}`}
             color="amber"
-            formula="Taxable brokerage + HSA balances"
+            formula="Non-Registered account balances"
             details={
               <div>
                 <p className="mb-1">
-                  <strong>Taxable:</strong> {formatCurrency(breakdownByTaxTreatment.taxable)} -
-                  Only gains are taxed at capital gains rates (often 0% or 15%).
-                </p>
-                <p>
-                  <strong>HSA:</strong> {formatCurrency(breakdownByTaxTreatment.hsa)} -
-                  Tax-free for qualified medical expenses.
+                  Only the taxable portion of capital gains (Inclusion Rate) is added to your income.
                 </p>
               </div>
             }
@@ -261,17 +251,19 @@ export function SummaryCards({
           <ExpandableStatCard
             title="Monthly Withdrawal"
             value={formatCurrency(sustainableMonthlyWithdrawal)}
-            subtitle="In today's dollars"
+            subtitle={`At Age ${profile.retirementAge}: ${formatCurrency(retirementResult.sustainableMonthlyWithdrawalNominal)}`}
             color="green"
             formula={`${formatCurrency(totalAtRetirement)} × ${formatPercent(assumptions.safeWithdrawalRate)} ÷ 12`}
             details={
               <div>
                 <p className="mb-1">
-                  Based on the {formatPercent(assumptions.safeWithdrawalRate)} safe withdrawal rate applied to your
-                  {' '}{formatCurrency(totalAtRetirement)} portfolio.
+                  <strong>Today's Dollars:</strong> {formatCurrency(sustainableMonthlyWithdrawal)}
                 </p>
-                <p>
-                  Actual withdrawals will be adjusted for {formatPercent(assumptions.inflationRate)} annual inflation.
+                <p className="mb-1">
+                  <strong>Future Dollars:</strong> {formatCurrency(retirementResult.sustainableMonthlyWithdrawalNominal)}
+                </p>
+                <p className="text-gray-500 dark:text-gray-400 italic mt-1">
+                  Based on {formatPercent(assumptions.safeWithdrawalRate)} safe withdrawal rate.
                 </p>
               </div>
             }
@@ -279,19 +271,19 @@ export function SummaryCards({
           <ExpandableStatCard
             title="Annual Withdrawal"
             value={formatCurrency(sustainableAnnualWithdrawal)}
-            subtitle="In today's dollars"
+            subtitle={`At Age ${profile.retirementAge}: ${formatCurrency(retirementResult.sustainableAnnualWithdrawalNominal)}`}
             color="green"
             formula={`${formatCurrency(totalAtRetirement)} × ${formatPercent(assumptions.safeWithdrawalRate)}`}
             details={
               <div>
                 <p className="mb-1">
-                  = {formatCurrency(totalAtRetirement)} × {formatPercent(assumptions.safeWithdrawalRate)}
+                  <strong>Today's Dollars:</strong> {formatCurrency(sustainableAnnualWithdrawal)}
                 </p>
                 <p className="mb-1">
-                  = {formatCurrency(sustainableAnnualWithdrawal)}
+                  <strong>Future Dollars:</strong> {formatCurrency(retirementResult.sustainableAnnualWithdrawalNominal)}
                 </p>
-                <p className="text-gray-500 dark:text-gray-400 italic">
-                  This is your initial withdrawal amount. Each year it increases by the inflation rate ({formatPercent(assumptions.inflationRate)}).
+                <p className="text-gray-500 dark:text-gray-400 italic mt-1">
+                  Initial withdrawal amount, adjusted for inflation each year thereafter.
                 </p>
               </div>
             }
@@ -327,7 +319,7 @@ export function SummaryCards({
             value={formatCurrency(lifetimeTaxesPaid)}
             subtitle="Total taxes in retirement"
             color="purple"
-            formula="Sum of federal + state taxes across all retirement years"
+            formula="Sum of federal + provincial taxes"
             details={
               <div>
                 <p className="mb-1">
@@ -335,13 +327,13 @@ export function SummaryCards({
                 </p>
                 <ul className="space-y-0.5 mb-2">
                   <li>Federal taxes: {formatCurrency(yearlyWithdrawals.reduce((sum, y) => sum + y.federalTax, 0))}</li>
-                  <li>State taxes: {formatCurrency(yearlyWithdrawals.reduce((sum, y) => sum + y.stateTax, 0))}</li>
+                  <li>Provincial taxes: {formatCurrency(yearlyWithdrawals.reduce((sum, y) => sum + y.provincialTax, 0))}</li>
                 </ul>
                 <p>
                   Average effective tax rate: {formatPercent(avgEffectiveTaxRate)}
                 </p>
                 <p className="text-gray-500 dark:text-gray-400 italic mt-1">
-                  Standard deduction: {formatCurrency(standardDeduction)} ({profile.filingStatus === 'married_filing_jointly' ? 'MFJ' : 'Single'})
+                  Basic Personal Amount: {formatCurrency(BASIC_PERSONAL_AMOUNT)}
                 </p>
               </div>
             }
@@ -377,20 +369,20 @@ export function SummaryCards({
               </p>
             }
           />
-          {profile.socialSecurityBenefit && profile.socialSecurityStartAge ? (
+          {profile.cppOasBenefit && profile.cppOasStartAge ? (
             <ExpandableStatCard
-              title="Social Security"
-              value={formatCurrency(profile.socialSecurityBenefit)}
-              subtitle={`Starting at age ${profile.socialSecurityStartAge}`}
+              title="CPP & OAS"
+              value={formatCurrency(profile.cppOasBenefit)}
+              subtitle={`Starting at age ${profile.cppOasStartAge}`}
               color="teal"
               formula="Annual benefit in today's dollars, adjusted for inflation"
               details={
                 <div>
                   <p className="mb-1">
-                    Social Security income is assumed to grow with inflation ({formatPercent(assumptions.inflationRate)}/year).
+                    Government benefits are assumed to grow with inflation ({formatPercent(assumptions.inflationRate)}/year).
                   </p>
                   <p>
-                    85% of Social Security is included as taxable income (maximum taxable portion).
+                    CPP and OAS are fully taxable income.
                   </p>
                 </div>
               }

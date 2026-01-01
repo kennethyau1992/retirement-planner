@@ -28,9 +28,9 @@ function formatCurrency(value: number): string {
 }
 
 function formatTooltipValue(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -104,7 +104,7 @@ export function ChartDrawdown({ accounts, result, isDarkMode = false }: ChartDra
 
   // Sort accounts by tax treatment for consistent stacking order
   const sortedAccounts = [...accounts].sort((a, b) => {
-    const order = { pretax: 0, roth: 1, taxable: 2, hsa: 3 };
+    const order = { pretax: 0, tax_free: 1, taxable: 2 };
     return order[getTaxTreatment(a.type)] - order[getTaxTreatment(b.type)];
   });
 

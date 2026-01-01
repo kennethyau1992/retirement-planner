@@ -5,6 +5,7 @@ import { CHART_COLORS } from '../utils/constants';
 
 interface AccountListProps {
   accounts: Account[];
+  hasSpouse: boolean;
   onAdd: (account: Account) => void;
   onUpdate: (account: Account) => void;
   onDelete: (id: string) => void;
@@ -23,7 +24,7 @@ function getTaxTreatmentColor(type: Account['type']): string {
   return CHART_COLORS[treatment];
 }
 
-export function AccountList({ accounts, onAdd, onUpdate, onDelete }: AccountListProps) {
+export function AccountList({ accounts, hasSpouse, onAdd, onUpdate, onDelete }: AccountListProps) {
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | undefined>();
 
@@ -49,6 +50,12 @@ export function AccountList({ accounts, onAdd, onUpdate, onDelete }: AccountList
 
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
 
+  const getMatchAmount = (account: Account) => {
+    if (!account.employerMatchPercent) return 0;
+    const match = account.annualContribution * account.employerMatchPercent;
+    return account.employerMatchLimit ? Math.min(match, account.employerMatchLimit) : match;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-600 pb-2">
@@ -73,6 +80,7 @@ export function AccountList({ accounts, onAdd, onUpdate, onDelete }: AccountList
           <AccountForm
             key={editingAccount?.id ?? 'new'}
             account={editingAccount}
+            hasSpouse={hasSpouse}
             onSave={handleSave}
             onCancel={handleCancel}
           />
@@ -85,7 +93,10 @@ export function AccountList({ accounts, onAdd, onUpdate, onDelete }: AccountList
         </p>
       ) : (
         <div className="space-y-2">
-          {accounts.map(account => (
+          {accounts.map(account => {
+            const matchAmount = getMatchAmount(account);
+            
+            return (
             <div
               key={account.id}
               className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:shadow-sm transition-shadow"
@@ -96,7 +107,18 @@ export function AccountList({ accounts, onAdd, onUpdate, onDelete }: AccountList
                   style={{ backgroundColor: getTaxTreatmentColor(account.type) }}
                 />
                 <div>
-                  <div className="font-medium text-gray-900 dark:text-white">{account.name}</div>
+                  <div className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                    {account.name}
+                    {hasSpouse && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                        account.owner === 'spouse' 
+                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                      }`}>
+                        {account.owner === 'spouse' ? 'Spouse' : 'Primary'}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     {getAccountTypeLabel(account.type)}
                   </div>
@@ -110,6 +132,11 @@ export function AccountList({ accounts, onAdd, onUpdate, onDelete }: AccountList
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     +{formatCurrency(account.annualContribution)}/yr
+                    {matchAmount > 0 && (
+                      <span className="text-green-600 dark:text-green-400 ml-1">
+                        (+{formatCurrency(matchAmount)} match)
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -135,7 +162,8 @@ export function AccountList({ accounts, onAdd, onUpdate, onDelete }: AccountList
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {accounts.length > 0 && (
             <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-600 mt-2">

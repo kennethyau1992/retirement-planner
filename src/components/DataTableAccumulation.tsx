@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Account, AccumulationResult, getTaxTreatment } from '../types';
-import { is401k } from '../types';
+import { Account, AccumulationResult, getTaxTreatment, hasEmployerMatch } from '../types';
 
 interface DataTableAccumulationProps {
   accounts: Account[];
@@ -8,9 +7,9 @@ interface DataTableAccumulationProps {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -25,7 +24,7 @@ export function DataTableAccumulation({ accounts, result }: DataTableAccumulatio
 
   // Calculate employer match for each account/year
   const getEmployerMatch = (account: Account, contribution: number): number => {
-    if (!is401k(account.type) || !account.employerMatchPercent || !account.employerMatchLimit) {
+    if (!hasEmployerMatch(account.type) || !account.employerMatchPercent || !account.employerMatchLimit) {
       return 0;
     }
     const matchAmount = contribution * account.employerMatchPercent;
@@ -37,9 +36,9 @@ export function DataTableAccumulation({ accounts, result }: DataTableAccumulatio
     const treatment = getTaxTreatment(accountType);
     switch (treatment) {
       case 'pretax': return 'text-blue-600 dark:text-blue-400';
-      case 'roth': return 'text-green-600 dark:text-green-400';
+      case 'tax_free': return 'text-green-600 dark:text-green-400';
       case 'taxable': return 'text-amber-600 dark:text-amber-400';
-      case 'hsa': return 'text-purple-600 dark:text-purple-400';
+      default: return 'text-gray-600 dark:text-gray-400';
     }
   };
 
@@ -184,7 +183,7 @@ export function DataTableAccumulation({ accounts, result }: DataTableAccumulatio
                     {accounts.map(acc => (
                       <th key={acc.id} className={`text-right py-2 px-2 font-medium ${getColorClass(acc.type)}`}>
                         {acc.name}
-                        {is401k(acc.type) && acc.employerMatchPercent ? ' (+Match)' : ''}
+                        {hasEmployerMatch(acc.type) && acc.employerMatchPercent ? ' (+Match)' : ''}
                       </th>
                     ))}
                     <th className="text-right py-2 px-2 font-medium text-gray-700 dark:text-gray-300">Total</th>
@@ -254,19 +253,15 @@ export function DataTableAccumulation({ accounts, result }: DataTableAccumulatio
           <div className="mt-4 flex flex-wrap gap-4 text-xs">
             <div className="flex items-center gap-1">
               <span className="w-3 h-3 rounded bg-blue-500"></span>
-              <span className="text-gray-600 dark:text-gray-400">Pre-tax</span>
+              <span className="text-gray-600 dark:text-gray-400">RRSP (Pre-tax)</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-3 h-3 rounded bg-green-500"></span>
-              <span className="text-gray-600 dark:text-gray-400">Roth</span>
+              <span className="text-gray-600 dark:text-gray-400">TFSA (Tax-free)</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-3 h-3 rounded bg-amber-500"></span>
-              <span className="text-gray-600 dark:text-gray-400">Taxable</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded bg-purple-500"></span>
-              <span className="text-gray-600 dark:text-gray-400">HSA</span>
+              <span className="text-gray-600 dark:text-gray-400">Non-Registered (Taxable)</span>
             </div>
           </div>
         </div>

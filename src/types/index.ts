@@ -1,35 +1,40 @@
 export type AccountType =
-  | 'traditional_401k'
-  | 'roth_401k'
-  | 'traditional_ira'
-  | 'roth_ira'
-  | 'taxable'
-  | 'hsa';
+  | 'rrsp'
+  | 'tfsa'
+  | 'non_registered'
+  | 'fhsa';
 
-export type FilingStatus = 'single' | 'married_filing_jointly';
+export type FilingStatus = 'single';
 
-export type TaxTreatment = 'pretax' | 'roth' | 'taxable' | 'hsa';
+export type TaxTreatment = 'pretax' | 'tax_free' | 'taxable';
 
 export interface Account {
   id: string;
   name: string;
   type: AccountType;
+  owner: 'primary' | 'spouse'; // New field for family planning
   balance: number;
   annualContribution: number;
   contributionGrowthRate: number; // as decimal, e.g., 0.03
   returnRate: number; // as decimal
-  employerMatchPercent?: number; // 401k only, as decimal
-  employerMatchLimit?: number; // 401k only, dollar amount
+  employerMatchPercent?: number; // Match Ratio (e.g. 0.5 for 50%, 1.0 for 100%)
+  matchableSalaryPercent?: number; // Max salary % matched (e.g. 0.05 for 5%)
+  employerMatchLimit?: number; // RRSP only, dollar amount
 }
 
 export interface Profile {
+  name: string; // "You" or user input
   currentAge: number;
   retirementAge: number;
   lifeExpectancy: number;
   filingStatus: FilingStatus;
-  stateTaxRate: number; // as decimal
-  socialSecurityBenefit?: number; // annual, in today's dollars
-  socialSecurityStartAge?: number;
+  provinceTaxRate: number; // as decimal (simplified)
+  annualIncome?: number; // Gross annual income for contribution calculations
+  annualSpending?: number; // New: For budget-based savings calculation
+  isFirstTimeHomeBuyer?: boolean; // For FHSA eligibility
+  cppOasBenefit?: number; // annual, in today's dollars
+  cppOasStartAge?: number;
+  spouse?: Profile; // Optional spouse profile
 }
 
 export interface Assumptions {
@@ -50,11 +55,16 @@ export interface AccumulationResult {
   yearlyBalances: YearlyAccountBalance[];
   finalBalances: Record<string, number>;
   totalAtRetirement: number;
+  totalAtRetirementReal: number; // Value in today's dollars
   breakdownByTaxTreatment: {
     pretax: number;
-    roth: number;
+    tax_free: number;
     taxable: number;
-    hsa: number;
+  };
+  breakdownByTaxTreatmentReal: {
+    pretax: number;
+    tax_free: number;
+    taxable: number;
   };
 }
 
@@ -64,10 +74,10 @@ export interface YearlyWithdrawal {
   withdrawals: Record<string, number>; // accountId -> withdrawal
   remainingBalances: Record<string, number>; // accountId -> remaining balance
   totalWithdrawal: number;
-  socialSecurityIncome: number;
+  cppOasIncome: number;
   grossIncome: number;
   federalTax: number;
-  stateTax: number;
+  provincialTax: number;
   totalTax: number;
   afterTaxIncome: number;
   targetSpending: number;
@@ -79,8 +89,10 @@ export interface RetirementResult {
   yearlyWithdrawals: YearlyWithdrawal[];
   portfolioDepletionAge: number | null; // null if never depletes
   lifetimeTaxesPaid: number;
-  sustainableMonthlyWithdrawal: number;
-  sustainableAnnualWithdrawal: number;
+  sustainableMonthlyWithdrawal: number; // Real (Today's $)
+  sustainableAnnualWithdrawal: number; // Real (Today's $)
+  sustainableMonthlyWithdrawalNominal: number; // Future (Age 65 $)
+  sustainableAnnualWithdrawalNominal: number; // Future (Age 65 $)
   accountDepletionAges: Record<string, number | null>; // accountId -> age when depleted
 }
 
@@ -97,49 +109,42 @@ export interface TaxBracket {
   rate: number;
 }
 
-// RMD table entry
-export interface RMDEntry {
+// RRIF Minimum Withdrawal table entry
+export interface RRIFEntry {
   age: number;
-  divisor: number;
+  factor: number; // Percentage as decimal (e.g. 0.0528)
 }
 
 // Helper function type for getting tax treatment
 export function getTaxTreatment(accountType: AccountType): TaxTreatment {
   switch (accountType) {
-    case 'traditional_401k':
-    case 'traditional_ira':
+    case 'rrsp':
       return 'pretax';
-    case 'roth_401k':
-    case 'roth_ira':
-      return 'roth';
-    case 'taxable':
+    case 'tfsa':
+    case 'fhsa':
+      return 'tax_free';
+    case 'non_registered':
       return 'taxable';
-    case 'hsa':
-      return 'hsa';
   }
 }
 
 export function getAccountTypeLabel(type: AccountType): string {
   switch (type) {
-    case 'traditional_401k':
-      return 'Traditional 401(k)';
-    case 'roth_401k':
-      return 'Roth 401(k)';
-    case 'traditional_ira':
-      return 'Traditional IRA';
-    case 'roth_ira':
-      return 'Roth IRA';
-    case 'taxable':
-      return 'Taxable Brokerage';
-    case 'hsa':
-      return 'HSA';
+    case 'rrsp':
+      return 'RRSP';
+    case 'tfsa':
+      return 'TFSA';
+    case 'fhsa':
+      return 'FHSA';
+    case 'non_registered':
+      return 'Non-Registered';
   }
 }
 
-export function is401k(type: AccountType): boolean {
-  return type === 'traditional_401k' || type === 'roth_401k';
+export function hasEmployerMatch(type: AccountType): boolean {
+  return type === 'rrsp'; // Group RRSP
 }
 
-export function isTraditional(type: AccountType): boolean {
-  return type === 'traditional_401k' || type === 'traditional_ira';
+export function isPreTax(type: AccountType): boolean {
+  return type === 'rrsp';
 }

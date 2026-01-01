@@ -1,13 +1,10 @@
 import { Profile, Assumptions } from '../types';
 import {
-  TAX_BRACKETS_MFJ,
-  TAX_BRACKETS_SINGLE,
-  STANDARD_DEDUCTION_MFJ,
-  STANDARD_DEDUCTION_SINGLE,
-  CAPITAL_GAINS_BRACKETS_MFJ,
-  CAPITAL_GAINS_BRACKETS_SINGLE,
-  RMD_TABLE,
-  RMD_START_AGE,
+  TAX_BRACKETS_FEDERAL,
+  BASIC_PERSONAL_AMOUNT,
+  RRIF_TABLE,
+  RRIF_START_AGE,
+  CAPITAL_GAINS_INCLUSION_RATE_BASE,
 } from '../utils/constants';
 
 interface MethodologyPanelProps {
@@ -16,9 +13,9 @@ interface MethodologyPanelProps {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -28,17 +25,14 @@ function formatPercent(value: number): string {
 }
 
 export function MethodologyPanel({ profile, assumptions }: MethodologyPanelProps) {
-  const isMarried = profile.filingStatus === 'married_filing_jointly';
-  const taxBrackets = isMarried ? TAX_BRACKETS_MFJ : TAX_BRACKETS_SINGLE;
-  const standardDeduction = isMarried ? STANDARD_DEDUCTION_MFJ : STANDARD_DEDUCTION_SINGLE;
-  const capitalGainsBrackets = isMarried ? CAPITAL_GAINS_BRACKETS_MFJ : CAPITAL_GAINS_BRACKETS_SINGLE;
+  const taxBrackets = TAX_BRACKETS_FEDERAL;
 
   return (
     <div className="space-y-6">
       {/* Overview */}
       <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          How This Calculator Works
+          How This Calculator Works (Canadian Edition)
         </h3>
         <div className="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-300">
           <p>
@@ -47,7 +41,7 @@ export function MethodologyPanel({ profile, assumptions }: MethodologyPanelProps
           <ol className="list-decimal list-inside space-y-2 mt-2">
             <li>
               <strong>Accumulation Phase</strong> (age {profile.currentAge} to {profile.retirementAge}):
-              Projects account growth using compound interest, annual contributions, contribution growth, and employer matching.
+              Projects account growth using compound interest, annual contributions, contribution growth, and employer matching (Group RRSP).
             </li>
             <li>
               <strong>Withdrawal Phase</strong> (age {profile.retirementAge} to {profile.lifeExpectancy}):
@@ -85,17 +79,15 @@ export function MethodologyPanel({ profile, assumptions }: MethodologyPanelProps
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-gray-600 dark:text-gray-400">Filing Status</dt>
-                <dd className="font-mono text-gray-900 dark:text-white">
-                  {isMarried ? 'Married Filing Jointly' : 'Single'}
-                </dd>
+                <dd className="font-mono text-gray-900 dark:text-white">Individual</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-600 dark:text-gray-400">State Tax Rate</dt>
-                <dd className="font-mono text-gray-900 dark:text-white">{formatPercent(profile.stateTaxRate)}</dd>
+                <dt className="text-gray-600 dark:text-gray-400">Provincial Tax Rate</dt>
+                <dd className="font-mono text-gray-900 dark:text-white">{formatPercent(profile.provinceTaxRate)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-600 dark:text-gray-400">Standard Deduction</dt>
-                <dd className="font-mono text-gray-900 dark:text-white">{formatCurrency(standardDeduction)}</dd>
+                <dt className="text-gray-600 dark:text-gray-400">Basic Personal Amount</dt>
+                <dd className="font-mono text-gray-900 dark:text-white">{formatCurrency(BASIC_PERSONAL_AMOUNT)}</dd>
               </div>
             </dl>
           </div>
@@ -119,7 +111,7 @@ export function MethodologyPanel({ profile, assumptions }: MethodologyPanelProps
           </div>
 
           <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-            <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Employer Match (401k only)</h4>
+            <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Employer Match (Group RRSP)</h4>
             <code className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded block mb-2 text-gray-800 dark:text-gray-200">
               Match = min(Contribution × Match %, Match Limit)
             </code>
@@ -147,52 +139,52 @@ export function MethodologyPanel({ profile, assumptions }: MethodologyPanelProps
         </h3>
         <div className="space-y-4 text-sm">
           <p className="text-gray-600 dark:text-gray-400">
-            The calculator uses a 6-step withdrawal strategy designed to minimize lifetime taxes:
+            The calculator uses a strategy designed to minimize lifetime taxes:
           </p>
 
           <ol className="space-y-3">
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold">1</span>
               <div>
-                <strong className="text-gray-800 dark:text-gray-200">Required Minimum Distributions (RMDs)</strong>
-                <p className="text-gray-600 dark:text-gray-400">Starting at age {RMD_START_AGE}, traditional accounts must take RMDs based on IRS life expectancy tables.</p>
+                <strong className="text-gray-800 dark:text-gray-200">RRIF Minimums</strong>
+                <p className="text-gray-600 dark:text-gray-400">Payments start the year you turn {RRIF_START_AGE}. Minimum withdrawals are mandatory from RRSP/RRIF accounts.</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-bold">2</span>
               <div>
-                <strong className="text-gray-800 dark:text-gray-200">Fill 12% Tax Bracket</strong>
+                <strong className="text-gray-800 dark:text-gray-200">Fill Lower Brackets</strong>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Additional traditional withdrawals to fill the 12% bracket (up to {formatCurrency(standardDeduction + (isMarried ? 94300 : 47150))} total ordinary income).
+                  Additional RRSP withdrawals to fill lower tax brackets.
                 </p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 flex items-center justify-center text-xs font-bold">3</span>
               <div>
-                <strong className="text-gray-800 dark:text-gray-200">Roth Accounts</strong>
+                <strong className="text-gray-800 dark:text-gray-200">TFSA</strong>
                 <p className="text-gray-600 dark:text-gray-400">Tax-free withdrawals for remaining spending needs.</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold">4</span>
               <div>
-                <strong className="text-gray-800 dark:text-gray-200">Taxable Accounts</strong>
-                <p className="text-gray-600 dark:text-gray-400">Only gains portion is taxed at capital gains rates (often 0% or 15%).</p>
+                <strong className="text-gray-800 dark:text-gray-200">Non-Registered</strong>
+                <p className="text-gray-600 dark:text-gray-400">Capital gains tax applies only to {formatPercent(CAPITAL_GAINS_INCLUSION_RATE_BASE)} of the gain.</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xs font-bold">5</span>
               <div>
-                <strong className="text-gray-800 dark:text-gray-200">HSA Accounts</strong>
-                <p className="text-gray-600 dark:text-gray-400">Used last; assumed tax-free for qualified medical expenses.</p>
+                <strong className="text-gray-800 dark:text-gray-200">FHSA</strong>
+                <p className="text-gray-600 dark:text-gray-400">Treated as tax-free (assuming qualified use or transfer to RRSP effectively).</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 flex items-center justify-center text-xs font-bold">6</span>
               <div>
-                <strong className="text-gray-800 dark:text-gray-200">Additional Traditional</strong>
-                <p className="text-gray-600 dark:text-gray-400">If more is needed, withdraws from traditional accounts at higher tax brackets.</p>
+                <strong className="text-gray-800 dark:text-gray-200">Additional RRSP</strong>
+                <p className="text-gray-600 dark:text-gray-400">If more is needed, withdraws from RRSP at higher tax brackets.</p>
               </div>
             </li>
           </ol>
@@ -218,30 +210,30 @@ export function MethodologyPanel({ profile, assumptions }: MethodologyPanelProps
           <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
             <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Federal Income Tax</h4>
             <code className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded block mb-2 text-gray-800 dark:text-gray-200">
-              Taxable Income = Traditional Withdrawals + (Social Security × 85%) - Standard Deduction
+              Tax = (Taxable Income × Rates) - (Basic Personal Amount × 15%)
             </code>
             <p className="text-gray-600 dark:text-gray-400">
-              Progressive brackets applied to taxable income (see table below).
+              Progressive brackets applied to taxable income. Basic Personal Amount is a non-refundable tax credit.
             </p>
           </div>
 
           <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
             <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Capital Gains Tax</h4>
             <code className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded block mb-2 text-gray-800 dark:text-gray-200">
-              Taxable Gains = Withdrawal × (1 - Cost Basis / Balance)
+              Taxable Gains = Total Gain × {formatPercent(CAPITAL_GAINS_INCLUSION_RATE_BASE)}
             </code>
             <p className="text-gray-600 dark:text-gray-400">
-              Long-term capital gains rates applied; brackets determined by total income.
+              Only the taxable portion ({formatPercent(CAPITAL_GAINS_INCLUSION_RATE_BASE)}) is added to your income and taxed at your marginal rate.
             </p>
           </div>
 
           <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-            <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">State Tax (Simplified)</h4>
+            <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Provincial Tax (Simplified)</h4>
             <code className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded block mb-2 text-gray-800 dark:text-gray-200">
-              State Tax = (Ordinary Income + Capital Gains - Standard Deduction) × {formatPercent(profile.stateTaxRate)}
+              Provincial Tax = Total Taxable Income × {formatPercent(profile.provinceTaxRate)}
             </code>
             <p className="text-gray-600 dark:text-gray-400">
-              Flat rate applied to taxable income. Actual state taxes vary by state.
+              Flat rate estimate. Actual provincial taxes use progressive brackets and credits.
             </p>
           </div>
         </div>
@@ -250,7 +242,7 @@ export function MethodologyPanel({ profile, assumptions }: MethodologyPanelProps
       {/* Federal Tax Brackets */}
       <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          2024 Federal Tax Brackets ({isMarried ? 'Married Filing Jointly' : 'Single'})
+          2024 Canadian Federal Tax Brackets
         </h3>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -274,53 +266,19 @@ export function MethodologyPanel({ profile, assumptions }: MethodologyPanelProps
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-xs text-gray-500 dark:text-gray-500">
-          Standard deduction of {formatCurrency(standardDeduction)} is subtracted before applying brackets.
-        </p>
       </section>
 
-      {/* Capital Gains Brackets */}
+      {/* RRIF Table */}
       <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          2024 Long-Term Capital Gains Rates ({isMarried ? 'Married Filing Jointly' : 'Single'})
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-2 px-3 font-medium text-gray-700 dark:text-gray-300">Total Income</th>
-                <th className="text-right py-2 px-3 font-medium text-gray-700 dark:text-gray-300">Capital Gains Rate</th>
-              </tr>
-            </thead>
-            <tbody>
-              {capitalGainsBrackets.map((bracket, index) => (
-                <tr key={index} className="border-b border-gray-100 dark:border-gray-800">
-                  <td className="py-2 px-3 text-gray-600 dark:text-gray-400">
-                    {formatCurrency(bracket.min)} - {bracket.max === Infinity ? 'and above' : formatCurrency(bracket.max)}
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono text-gray-900 dark:text-white">
-                    {formatPercent(bracket.rate)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* RMD Table */}
-      <section className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Required Minimum Distribution (RMD) Table
+          RRIF Minimum Withdrawal Factors
         </h3>
         <div className="space-y-3 text-sm">
           <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-            <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">RMD Formula</h4>
-            <code className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded block mb-2 text-gray-800 dark:text-gray-200">
-              RMD = Traditional Account Balance / Life Expectancy Divisor
-            </code>
+            <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">RRIF Rules</h4>
             <p className="text-gray-600 dark:text-gray-400">
-              RMDs begin at age {RMD_START_AGE} per the SECURE 2.0 Act. The divisor decreases with age, requiring larger withdrawals.
+              You must convert your RRSP to a RRIF by the end of the year you turn 71. Payments start the following year. 
+              The minimum withdrawal is calculated as a percentage of the market value of your RRIF assets at the beginning of the year.
             </p>
           </div>
 
@@ -329,26 +287,21 @@ export function MethodologyPanel({ profile, assumptions }: MethodologyPanelProps
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="text-left py-2 px-3 font-medium text-gray-700 dark:text-gray-300">Age</th>
-                  <th className="text-right py-2 px-3 font-medium text-gray-700 dark:text-gray-300">Divisor</th>
-                  <th className="text-right py-2 px-3 font-medium text-gray-700 dark:text-gray-300">% of Balance</th>
+                  <th className="text-right py-2 px-3 font-medium text-gray-700 dark:text-gray-300">Minimum Withdrawal Factor</th>
                 </tr>
               </thead>
               <tbody>
-                {RMD_TABLE.filter((_, i) => i % 5 === 0 || i === RMD_TABLE.length - 1).map((entry) => (
+                {RRIF_TABLE.filter((_, i) => i % 5 === 0 || i === 0 || i === RRIF_TABLE.length - 1).map((entry) => (
                   <tr key={entry.age} className="border-b border-gray-100 dark:border-gray-800">
                     <td className="py-2 px-3 text-gray-600 dark:text-gray-400">{entry.age}</td>
-                    <td className="py-2 px-3 text-right font-mono text-gray-900 dark:text-white">{entry.divisor.toFixed(1)}</td>
                     <td className="py-2 px-3 text-right font-mono text-gray-900 dark:text-white">
-                      {((1 / entry.divisor) * 100).toFixed(2)}%
+                      {formatPercent(entry.factor)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-500">
-            Based on IRS Uniform Lifetime Table. Showing every 5th year; full table used in calculations.
-          </p>
         </div>
       </section>
 
@@ -360,23 +313,19 @@ export function MethodologyPanel({ profile, assumptions }: MethodologyPanelProps
         <ul className="space-y-2 text-sm text-amber-700 dark:text-amber-300">
           <li className="flex gap-2">
             <span className="flex-shrink-0">*</span>
-            <span>Tax brackets are for 2024 and don't adjust for inflation in future years.</span>
+            <span>Tax brackets are for 2024 and don't adjust for inflation in future years (brackets are usually indexed in Canada, but this tool uses constant dollars).</span>
           </li>
           <li className="flex gap-2">
             <span className="flex-shrink-0">*</span>
-            <span>Social Security is assumed 85% taxable (maximum taxable portion).</span>
+            <span>CPP/OAS is treated as fully taxable income (OAS clawback is not explicitly modeled).</span>
           </li>
           <li className="flex gap-2">
             <span className="flex-shrink-0">*</span>
-            <span>Taxable account cost basis is estimated at 50% of the balance at retirement.</span>
+            <span>Non-Registered account cost basis is estimated at 50% of the balance at retirement.</span>
           </li>
           <li className="flex gap-2">
             <span className="flex-shrink-0">*</span>
-            <span>State tax uses a simplified flat rate; actual state taxes vary significantly.</span>
-          </li>
-          <li className="flex gap-2">
-            <span className="flex-shrink-0">*</span>
-            <span>HSA withdrawals are treated as tax-free, assuming qualified medical expenses.</span>
+            <span>Provincial tax uses a simplified flat rate; actual provincial taxes vary significantly.</span>
           </li>
           <li className="flex gap-2">
             <span className="flex-shrink-0">*</span>

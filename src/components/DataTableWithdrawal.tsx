@@ -7,9 +7,9 @@ interface DataTableWithdrawalProps {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -32,9 +32,9 @@ export function DataTableWithdrawal({ accounts, result }: DataTableWithdrawalPro
     const treatment = getTaxTreatment(accountType);
     switch (treatment) {
       case 'pretax': return 'text-blue-600 dark:text-blue-400';
-      case 'roth': return 'text-green-600 dark:text-green-400';
+      case 'tax_free': return 'text-green-600 dark:text-green-400';
       case 'taxable': return 'text-amber-600 dark:text-amber-400';
-      case 'hsa': return 'text-purple-600 dark:text-purple-400';
+      default: return 'text-gray-600 dark:text-gray-400';
     }
   };
 
@@ -119,7 +119,7 @@ export function DataTableWithdrawal({ accounts, result }: DataTableWithdrawalPro
                     <th className="text-left py-2 px-2 font-medium text-gray-700 dark:text-gray-300 sticky left-0 bg-white dark:bg-gray-800">Age</th>
                     <th className="text-right py-2 px-2 font-medium text-gray-700 dark:text-gray-300">Target Spending</th>
                     <th className="text-right py-2 px-2 font-medium text-gray-700 dark:text-gray-300">Withdrawals</th>
-                    <th className="text-right py-2 px-2 font-medium text-indigo-600 dark:text-indigo-400">Social Security</th>
+                    <th className="text-right py-2 px-2 font-medium text-indigo-600 dark:text-indigo-400">CPP & OAS</th>
                     <th className="text-right py-2 px-2 font-medium text-gray-700 dark:text-gray-300">Gross Income</th>
                     <th className="text-right py-2 px-2 font-medium text-red-600 dark:text-red-400">Total Taxes</th>
                     <th className="text-right py-2 px-2 font-medium text-teal-600 dark:text-teal-400">After-Tax Income</th>
@@ -132,7 +132,7 @@ export function DataTableWithdrawal({ accounts, result }: DataTableWithdrawalPro
                       <td className="py-2 px-2 text-right font-mono text-gray-600 dark:text-gray-400">{formatCurrency(yearData.targetSpending)}</td>
                       <td className="py-2 px-2 text-right font-mono text-gray-900 dark:text-white">{formatCurrency(yearData.totalWithdrawal)}</td>
                       <td className="py-2 px-2 text-right font-mono text-indigo-600 dark:text-indigo-400">
-                        {yearData.socialSecurityIncome > 0 ? formatCurrency(yearData.socialSecurityIncome) : '-'}
+                        {yearData.cppOasIncome > 0 ? formatCurrency(yearData.cppOasIncome) : '-'}
                       </td>
                       <td className="py-2 px-2 text-right font-mono text-gray-900 dark:text-white">{formatCurrency(yearData.grossIncome)}</td>
                       <td className="py-2 px-2 text-right font-mono text-red-600 dark:text-red-400">{formatCurrency(yearData.totalTax)}</td>
@@ -148,7 +148,7 @@ export function DataTableWithdrawal({ accounts, result }: DataTableWithdrawalPro
                       {formatCurrency(result.yearlyWithdrawals.reduce((sum, y) => sum + y.totalWithdrawal, 0))}
                     </td>
                     <td className="py-2 px-2 text-right font-mono font-medium text-indigo-600 dark:text-indigo-400">
-                      {formatCurrency(result.yearlyWithdrawals.reduce((sum, y) => sum + y.socialSecurityIncome, 0))}
+                      {formatCurrency(result.yearlyWithdrawals.reduce((sum, y) => sum + y.cppOasIncome, 0))}
                     </td>
                     <td className="py-2 px-2 text-right font-mono font-medium text-gray-900 dark:text-white">
                       {formatCurrency(result.yearlyWithdrawals.reduce((sum, y) => sum + y.grossIncome, 0))}
@@ -169,7 +169,7 @@ export function DataTableWithdrawal({ accounts, result }: DataTableWithdrawalPro
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
                     <th className="text-left py-2 px-2 font-medium text-gray-700 dark:text-gray-300 sticky left-0 bg-white dark:bg-gray-800">Age</th>
-                    <th className="text-right py-2 px-2 font-medium text-blue-600 dark:text-blue-400">RMD</th>
+                    <th className="text-right py-2 px-2 font-medium text-blue-600 dark:text-blue-400">RRIF Min</th>
                     {accounts.map(acc => (
                       <th key={acc.id} className={`text-right py-2 px-2 font-medium ${getColorClass(acc.type)}`}>
                         {acc.name}
@@ -237,7 +237,7 @@ export function DataTableWithdrawal({ accounts, result }: DataTableWithdrawalPro
                     <th className="text-left py-2 px-2 font-medium text-gray-700 dark:text-gray-300 sticky left-0 bg-white dark:bg-gray-800">Age</th>
                     <th className="text-right py-2 px-2 font-medium text-gray-700 dark:text-gray-300">Gross Income</th>
                     <th className="text-right py-2 px-2 font-medium text-red-600 dark:text-red-400">Federal Tax</th>
-                    <th className="text-right py-2 px-2 font-medium text-orange-600 dark:text-orange-400">State Tax</th>
+                    <th className="text-right py-2 px-2 font-medium text-orange-600 dark:text-orange-400">Provincial Tax</th>
                     <th className="text-right py-2 px-2 font-medium text-red-600 dark:text-red-400">Total Tax</th>
                     <th className="text-right py-2 px-2 font-medium text-gray-700 dark:text-gray-300">Effective Rate</th>
                   </tr>
@@ -250,7 +250,7 @@ export function DataTableWithdrawal({ accounts, result }: DataTableWithdrawalPro
                         <td className="py-2 px-2 font-medium text-gray-900 dark:text-white sticky left-0 bg-white dark:bg-gray-800">{yearData.age}</td>
                         <td className="py-2 px-2 text-right font-mono text-gray-900 dark:text-white">{formatCurrency(yearData.grossIncome)}</td>
                         <td className="py-2 px-2 text-right font-mono text-red-600 dark:text-red-400">{formatCurrency(yearData.federalTax)}</td>
-                        <td className="py-2 px-2 text-right font-mono text-orange-600 dark:text-orange-400">{formatCurrency(yearData.stateTax)}</td>
+                        <td className="py-2 px-2 text-right font-mono text-orange-600 dark:text-orange-400">{formatCurrency(yearData.provincialTax)}</td>
                         <td className="py-2 px-2 text-right font-mono text-red-600 dark:text-red-400">{formatCurrency(yearData.totalTax)}</td>
                         <td className="py-2 px-2 text-right font-mono text-gray-600 dark:text-gray-400">{formatPercent(effectiveRate)}</td>
                       </tr>
@@ -267,7 +267,7 @@ export function DataTableWithdrawal({ accounts, result }: DataTableWithdrawalPro
                       {formatCurrency(result.yearlyWithdrawals.reduce((sum, y) => sum + y.federalTax, 0))}
                     </td>
                     <td className="py-2 px-2 text-right font-mono font-medium text-orange-600 dark:text-orange-400">
-                      {formatCurrency(result.yearlyWithdrawals.reduce((sum, y) => sum + y.stateTax, 0))}
+                      {formatCurrency(result.yearlyWithdrawals.reduce((sum, y) => sum + y.provincialTax, 0))}
                     </td>
                     <td className="py-2 px-2 text-right font-mono font-medium text-red-600 dark:text-red-400">
                       {formatCurrency(result.lifetimeTaxesPaid)}
@@ -288,23 +288,19 @@ export function DataTableWithdrawal({ accounts, result }: DataTableWithdrawalPro
           <div className="mt-4 flex flex-wrap gap-4 text-xs">
             <div className="flex items-center gap-1">
               <span className="w-3 h-3 rounded bg-blue-500"></span>
-              <span className="text-gray-600 dark:text-gray-400">Pre-tax (RMD required)</span>
+              <span className="text-gray-600 dark:text-gray-400">RRSP (Pre-tax)</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-3 h-3 rounded bg-green-500"></span>
-              <span className="text-gray-600 dark:text-gray-400">Roth (tax-free)</span>
+              <span className="text-gray-600 dark:text-gray-400">TFSA (Tax-free)</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-3 h-3 rounded bg-amber-500"></span>
-              <span className="text-gray-600 dark:text-gray-400">Taxable (capital gains)</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded bg-purple-500"></span>
-              <span className="text-gray-600 dark:text-gray-400">HSA</span>
+              <span className="text-gray-600 dark:text-gray-400">Non-Registered (Taxable)</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-3 h-3 rounded bg-indigo-500"></span>
-              <span className="text-gray-600 dark:text-gray-400">Social Security</span>
+              <span className="text-gray-600 dark:text-gray-400">CPP & OAS</span>
             </div>
           </div>
         </div>

@@ -19,16 +19,21 @@ export function useRetirementCalc(
         yearlyBalances: [],
         finalBalances: {},
         totalAtRetirement: 0,
+        totalAtRetirementReal: 0,
         breakdownByTaxTreatment: {
           pretax: 0,
-          roth: 0,
+          tax_free: 0,
           taxable: 0,
-          hsa: 0,
+        },
+        breakdownByTaxTreatmentReal: {
+          pretax: 0,
+          tax_free: 0,
+          taxable: 0,
         },
       };
     }
-    return calculateAccumulation(accounts, profile);
-  }, [accounts, profile]);
+    return calculateAccumulation(accounts, profile, assumptions);
+  }, [accounts, profile, assumptions]);
 
   const retirement = useMemo(() => {
     if (accounts.length === 0 || accumulation.totalAtRetirement === 0) {
@@ -38,6 +43,8 @@ export function useRetirementCalc(
         lifetimeTaxesPaid: 0,
         sustainableMonthlyWithdrawal: 0,
         sustainableAnnualWithdrawal: 0,
+        sustainableMonthlyWithdrawalNominal: 0,
+        sustainableAnnualWithdrawalNominal: 0,
         accountDepletionAges: {},
       };
     }

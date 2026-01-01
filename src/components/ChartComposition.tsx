@@ -16,18 +16,17 @@ interface ChartCompositionProps {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'CAD',
     maximumFractionDigits: 0,
   }).format(value);
 }
 
 const TAX_TREATMENT_LABELS: Record<TaxTreatment, string> = {
-  pretax: 'Pre-Tax',
-  roth: 'Roth (Tax-Free)',
-  taxable: 'Taxable',
-  hsa: 'HSA',
+  pretax: 'RRSP (Pre-Tax)',
+  tax_free: 'TFSA (Tax-Free)',
+  taxable: 'Non-Registered',
 };
 
 interface CustomTooltipProps {

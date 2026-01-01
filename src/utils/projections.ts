@@ -1,17 +1,19 @@
 import {
   Account,
   Profile,
+  Assumptions, // New import
   AccumulationResult,
   YearlyAccountBalance,
   getTaxTreatment,
-  is401k,
+  hasEmployerMatch,
 } from '../types';
+import { FHSA_LIFETIME_LIMIT } from './constants';
 
 /**
- * Calculate employer match for a 401k account
+ * Calculate employer match for an RRSP account (Group RRSP)
  */
 function calculateEmployerMatch(account: Account): number {
-  if (!is401k(account.type) || !account.employerMatchPercent || !account.employerMatchLimit) {
+  if (!hasEmployerMatch(account.type) || !account.employerMatchPercent || !account.employerMatchLimit) {
     return 0;
   }
 
@@ -27,7 +29,8 @@ function calculateEmployerMatch(account: Account): number {
  */
 export function calculateAccumulation(
   accounts: Account[],
-  profile: Profile
+  profile: Profile,
+  assumptions: Assumptions // New parameter
 ): AccumulationResult {
   const yearsToRetirement = profile.retirementAge - profile.currentAge;
   const currentYear = new Date().getFullYear();
@@ -35,10 +38,12 @@ export function calculateAccumulation(
   // Initialize balances
   const balances: Record<string, number> = {};
   const contributions: Record<string, number> = {};
+  const cumulativeContributions: Record<string, number> = {}; // New: Track lifetime contributions
 
   accounts.forEach(account => {
     balances[account.id] = account.balance;
     contributions[account.id] = account.annualContribution;
+    cumulativeContributions[account.id] = 0; // Start at 0 (or assume past contributions not tracked in simplified model)
   });
 
   const yearlyBalances: YearlyAccountBalance[] = [];
@@ -59,7 +64,18 @@ export function calculateAccumulation(
 
     accounts.forEach(account => {
       const currentBalance = balances[account.id];
-      const currentContribution = contributions[account.id];
+      let currentContribution = contributions[account.id];
+
+      // Check FHSA Lifetime Limit
+      if (account.type === 'fhsa') {
+        const remainingSpace = FHSA_LIFETIME_LIMIT - cumulativeContributions[account.id];
+        if (remainingSpace <= 0) {
+          currentContribution = 0;
+        } else if (currentContribution > remainingSpace) {
+          currentContribution = remainingSpace;
+        }
+        cumulativeContributions[account.id] += currentContribution;
+      }
 
       // 1. Apply investment return to existing balance
       const balanceAfterReturn = currentBalance * (1 + account.returnRate);
@@ -74,8 +90,12 @@ export function calculateAccumulation(
       // Update balance
       balances[account.id] = balanceAfterReturn + totalContribution;
 
-      // 3. Grow contribution for next year
-      contributions[account.id] = currentContribution * (1 + account.contributionGrowthRate);
+      // 3. Grow contribution for next year (only if not capped by FHSA rule)
+      if (account.type !== 'fhsa' || cumulativeContributions[account.id] < FHSA_LIFETIME_LIMIT) {
+         contributions[account.id] = currentContribution * (1 + account.contributionGrowthRate);
+      } else {
+         contributions[account.id] = 0;
+      }
     });
 
     const totalBalance = Object.values(balances).reduce((sum, b) => sum + b, 0);
@@ -85,16 +105,15 @@ export function calculateAccumulation(
       year,
       balances: { ...balances },
       totalBalance,
-      contributions: { ...contributions },
+      contributions: { ...contributions }, // Note: This records what *was* contributed this year (after cap)
     });
   }
 
   // Calculate breakdown by tax treatment
   const breakdownByTaxTreatment = {
     pretax: 0,
-    roth: 0,
+    tax_free: 0,
     taxable: 0,
-    hsa: 0,
   };
 
   accounts.forEach(account => {
@@ -102,11 +121,26 @@ export function calculateAccumulation(
     breakdownByTaxTreatment[treatment] += balances[account.id];
   });
 
+  const totalAtRetirement = Object.values(balances).reduce((sum, b) => sum + b, 0);
+  
+  // Calculate value in today's dollars
+  // Real = FutureValue / (1 + inflation)^years
+  const discountFactor = Math.pow(1 + assumptions.inflationRate, yearsToRetirement);
+  const totalAtRetirementReal = totalAtRetirement / discountFactor;
+
+  const breakdownByTaxTreatmentReal = {
+    pretax: breakdownByTaxTreatment.pretax / discountFactor,
+    tax_free: breakdownByTaxTreatment.tax_free / discountFactor,
+    taxable: breakdownByTaxTreatment.taxable / discountFactor,
+  };
+
   return {
     yearlyBalances,
     finalBalances: { ...balances },
-    totalAtRetirement: Object.values(balances).reduce((sum, b) => sum + b, 0),
+    totalAtRetirement,
+    totalAtRetirementReal,
     breakdownByTaxTreatment,
+    breakdownByTaxTreatmentReal,
   };
 }
 

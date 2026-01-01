@@ -27,19 +27,15 @@ export function Layout({ children, isDarkMode, onToggleDarkMode, onReset }: Layo
               <div className="hidden md:flex items-center gap-4">
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                   <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-                  <span>Pre-Tax</span>
+                  <span>RRSP</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                   <span className="w-3 h-3 rounded-full bg-green-500"></span>
-                  <span>Roth</span>
+                  <span>TFSA</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                   <span className="w-3 h-3 rounded-full bg-amber-500"></span>
-                  <span>Taxable</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                  <span className="w-3 h-3 rounded-full bg-purple-500"></span>
-                  <span>HSA</span>
+                  <span>Non-Registered</span>
                 </div>
               </div>
 
