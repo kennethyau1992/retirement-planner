@@ -11,7 +11,7 @@ import {
   calculateTotalFederalTax,
   calculateProvincialTax,
 } from '../utils/taxes';
-import { getRRIFFactor, RRIF_START_AGE, BASIC_PERSONAL_AMOUNT, CAPITAL_GAINS_INCLUSION_RATE_BASE } from '../utils/constants';
+import { getRRIFFactor, RRIF_START_AGE, BASIC_PERSONAL_AMOUNT, CAPITAL_GAINS_INCLUSION_RATE_BASE, DEFAULT_ASSUMPTIONS } from '../utils/constants';
 import { Account, Profile, Assumptions } from '../types';
 
 // Test utilities
@@ -54,9 +54,9 @@ function testTaxCalculations(): void {
 
   console.log('\n--- Federal Income Tax ---');
 
-  // 2024 Brackets:
-  // 15% on first $55,867
-  // BPA Credit: 15% of $15,705 = $2,355.75
+  // 2025 Brackets:
+  // 15% on first $57,375
+  // BPA Credit: 15% of $16,129 = $2,419.35
 
   // Test 1: Income below BPA
   // Tax should be 0 (credits exceed calculated tax)
@@ -65,37 +65,39 @@ function testTaxCalculations(): void {
 
   // Test 2: Income $50,000 (1st bracket)
   // Tax = $50,000 * 0.15 = $7,500
-  // Less BPA credit $2,355.75
-  // Net = $5,144.25
+  // Less BPA credit $2,419.35
+  // Net = $5,080.65
   const tax2 = calculateTotalFederalTax(50000, 0, 'single');
-  assertApprox(tax2, 5144.25, 0.01, '$50k income = $5,144.25 tax');
+  assertApprox(tax2, 5080.65, 0.01, '$50k income = $5,080.65 tax');
 
   console.log('\n--- Capital Gains Tax ---');
 
   // $100k Capital Gains
   // Taxable portion = $50k (50% inclusion)
-  // Tax on $50k ordinary income (calculated above) = $5,144.25
+  // Tax on $50k ordinary income (calculated above) = $5,080.65
   const tax3 = calculateTotalFederalTax(0, 100000, 'single');
-  assertApprox(tax3, 5144.25, 0.01, '$100k Cap Gains (no other income) = same tax as $50k ordinary');
+  assertApprox(tax3, 5080.65, 0.01, '$100k Cap Gains (no other income) = same tax as $50k ordinary');
 
   // Mixed: $50k Ordinary + $20k Cap Gains
   // Taxable Gains = $10k
   // Total Income = $60k
   // Tax on $60k:
-  // First $55,867 @ 15% = $8,380.05
-  // Remaining $4,133 @ 20.5% = $847.27
-  // Total Raw Tax = $9,227.32
-  // Less BPA Credit ($2,355.75) = $6,871.57
+  // First $57,375 @ 15% = $8,606.25
+  // Remaining $2,625 @ 20.5% = $538.125
+  // Total Raw Tax = $9,144.375
+  // Less BPA Credit ($2,419.35) = $6,725.025
   const tax4 = calculateTotalFederalTax(50000, 20000, 'single');
-  assertApprox(tax4, 6871.57, 0.01, '$50k ordinary + $20k gains ($60k taxable) = $6,871.57');
+  assertApprox(tax4, 6725.03, 0.01, '$50k ordinary + $20k gains ($60k taxable) = $6,725.03');
 
   console.log('\n--- Provincial Tax ---');
 
-  // Flat rate 10% on total taxable income
-  // $50k ordinary + $20k gains = $60k taxable
-  // Tax = $6,000
+  // Ontario 2025 Model
+  // $60k Taxable
+  // Basic Tax: ~$2,677.95
+  // Health Premium: $600
+  // Total: ~$3,277.95
   const provTax = calculateProvincialTax(50000, 20000, 0.10);
-  assertApprox(provTax, 6000, 0.01, 'Provincial tax flat 10% on $60k taxable = $6,000');
+  assertApprox(provTax, 3277.95, 1.00, 'Provincial tax (Ontario) on $60k taxable = ~$3,278');
 }
 
 // =============================================================================
@@ -141,7 +143,7 @@ function testAccumulation(): void {
     provinceTaxRate: 0.10,
   };
 
-  const result = calculateAccumulation([account], profile);
+  const result = calculateAccumulation([account], profile, DEFAULT_ASSUMPTIONS);
   // Year 1: $100k * 1.05 + $10k = $115,000
   assertApprox(result.totalAtRetirement, 115000, 0.01, '1 year growth + contribution');
   assertApprox(result.breakdownByTaxTreatment.pretax, 115000, 0.01, 'Correctly categorized as Pre-tax');
@@ -190,7 +192,7 @@ function testWithdrawalStrategy(): void {
     retirementReturnRate: 0,
   };
 
-  const accumulation = calculateAccumulation([rrsp, tfsa], profile);
+  const accumulation = calculateAccumulation([rrsp, tfsa], profile, assumptions);
   const result = calculateWithdrawals([rrsp, tfsa], profile, assumptions, accumulation);
 
   const year1 = result.yearlyWithdrawals[0];

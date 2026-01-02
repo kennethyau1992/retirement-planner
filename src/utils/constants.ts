@@ -1,45 +1,46 @@
 import { TaxBracket, RRIFEntry } from '../types';
 
-// 2024 Canadian Federal Tax Brackets
+// 2025 Canadian Federal Tax Brackets
 export const TAX_BRACKETS_FEDERAL: TaxBracket[] = [
-  { min: 0, max: 55867, rate: 0.15 },
-  { min: 55867, max: 111733, rate: 0.205 },
-  { min: 111733, max: 173205, rate: 0.26 },
-  { min: 173205, max: 246752, rate: 0.29 },
-  { min: 246752, max: Infinity, rate: 0.33 },
+  { min: 0, max: 57375, rate: 0.15 },
+  { min: 57375, max: 114750, rate: 0.205 },
+  { min: 114750, max: 177882, rate: 0.26 },
+  { min: 177882, max: 253414, rate: 0.29 },
+  { min: 253414, max: Infinity, rate: 0.33 },
 ];
 
-// 2024 Ontario Tax Brackets (Proxy for Provincial)
+// 2025 Ontario Tax Brackets (Proxy for Provincial)
 export const TAX_BRACKETS_PROVINCIAL: TaxBracket[] = [
-  { min: 0, max: 51446, rate: 0.0505 },
-  { min: 51446, max: 102892, rate: 0.0915 },
-  { min: 102892, max: 150000, rate: 0.1116 },
+  { min: 0, max: 52886, rate: 0.0505 },
+  { min: 52886, max: 105775, rate: 0.0915 },
+  { min: 105775, max: 150000, rate: 0.1116 },
   { min: 150000, max: 220000, rate: 0.1216 },
   { min: 220000, max: Infinity, rate: 0.1316 },
 ];
 
-export const ONTARIO_SURTAX_1_THRESHOLD = 5315;
+export const ONTARIO_SURTAX_1_THRESHOLD = 5710;
 export const ONTARIO_SURTAX_1_RATE = 0.20;
-export const ONTARIO_SURTAX_2_THRESHOLD = 6802;
+export const ONTARIO_SURTAX_2_THRESHOLD = 7307;
 export const ONTARIO_SURTAX_2_RATE = 0.36;
 
-// 2024 Basic Personal Amount (Federal)
-export const BASIC_PERSONAL_AMOUNT = 15705;
+// 2025 Basic Personal Amount
+export const BASIC_PERSONAL_AMOUNT = 16129;
+export const ONTARIO_BASIC_PERSONAL_AMOUNT = 12747;
 
-// CPP & EI Premiums (2024)
+// CPP & EI Premiums (2025)
 export const CPP_PREMIUM_RATE = 0.0595;
-export const CPP_MAX_PENSIONABLE_EARNINGS = 68500;
+export const CPP_MAX_PENSIONABLE_EARNINGS = 71300;
 export const CPP_EXEMPTION = 3500;
-export const CPP_MAX_CONTRIBUTION = 3867.50;
+export const CPP_MAX_CONTRIBUTION = 4034.10; // 5.95% of (71300-3500)
 
-export const EI_PREMIUM_RATE = 0.0166;
-export const EI_MAX_INSURABLE_EARNINGS = 63200;
-export const EI_MAX_CONTRIBUTION = 1049.12;
+export const EI_PREMIUM_RATE = 0.0164; // 2025 rate
+export const EI_MAX_INSURABLE_EARNINGS = 65700; // 2025 limit
+export const EI_MAX_CONTRIBUTION = 1077.48;
 
-// Contribution Limits (2024/2025)
+// Contribution Limits (2025)
 export const RRSP_CONTRIBUTION_RATE = 0.18;
-export const RRSP_MAX_LIMIT = 31560; // 2024 limit
-export const TFSA_ANNUAL_LIMIT = 7000; // 2024 limit
+export const RRSP_MAX_LIMIT = 32490; // 2025 limit
+export const TFSA_ANNUAL_LIMIT = 7000; // 2025 limit
 export const FHSA_ANNUAL_LIMIT = 8000;
 export const FHSA_LIFETIME_LIMIT = 40000;
 

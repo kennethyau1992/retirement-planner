@@ -3,6 +3,7 @@ import {
   TAX_BRACKETS_FEDERAL,
   TAX_BRACKETS_PROVINCIAL,
   BASIC_PERSONAL_AMOUNT,
+  ONTARIO_BASIC_PERSONAL_AMOUNT,
   CAPITAL_GAINS_INCLUSION_RATE_BASE,
   ONTARIO_SURTAX_1_THRESHOLD,
   ONTARIO_SURTAX_1_RATE,
@@ -90,10 +91,8 @@ export function calculateProvincialTax(
   // 1. Basic Provincial Tax
   let basicTax = calculateBracketTax(totalTaxableIncome, TAX_BRACKETS_PROVINCIAL);
 
-  // 2. BPA Credit (Provincial) - Approx $12k for Ontario
-  // Simplified: reduce basic tax by ~5.05% of 12k = ~$600
-  const provincialBPA = 11865; // 2023/24 approx
-  const provincialCredit = provincialBPA * TAX_BRACKETS_PROVINCIAL[0].rate;
+  // 2. BPA Credit (Provincial)
+  const provincialCredit = ONTARIO_BASIC_PERSONAL_AMOUNT * TAX_BRACKETS_PROVINCIAL[0].rate;
   basicTax = Math.max(0, basicTax - provincialCredit);
 
   // 3. Surtax
